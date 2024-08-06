@@ -18,10 +18,10 @@ func euclidean_distance(src [2]float64, dst [2]float64) float64 {
 
 func generate_random_passwords(word_list []string, n int, word_count int) ([]string, error) {
 	passphrases := make([]string, n)
+	passphrase := make([]string, word_count)
 	for i := 0; i < n; i += 1 {
-		passphrase := make([]string, word_count)
 		for j := 0; j < word_count; j += 1 {
-			k := rand.Int() % len(word_list)
+			k := rand.Intn(len(word_list))
 			passphrase[j] = word_list[k]
 		}
 		passphrases[i] = strings.Join(passphrase, " ")
@@ -34,7 +34,7 @@ func read_file_lines(filename string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Line endings not made OS-agnostic by Go like in Python.
+	// Line endings aren't made OS-agnostic
 	file_no_carriages := strings.ReplaceAll(string(file_byte_contents), "\r", "")
 	lines := strings.Split(file_no_carriages, "\n")
 	return lines, nil
@@ -51,7 +51,10 @@ var finger_to_keys = map[int]string{
 
 var key_to_finger map[rune]int // Created at runtime
 
-func qwerty_typing_distance(s string, key_distances map[rune][2]float64) float64 {
+func qwerty_typing_distance(
+	s string,
+	key_positions map[rune][2]float64,
+) float64 {
 	// left  right (hand)
 	// QWERT YUIOP
 	// ASDFG HJKL
@@ -69,20 +72,19 @@ func qwerty_typing_distance(s string, key_distances map[rune][2]float64) float64
 	//          should remember last position of finger
 	// PENALTY, but not an option: shift and numericals
 
-	finger_positions := make([][2]float64, 10)
-	// assume middle row
-	finger_positions[2] = key_distances['a']
-	finger_positions[3] = key_distances['s']
-	finger_positions[4] = key_distances['f']
-	finger_positions[7] = key_distances['j']
-	finger_positions[8] = key_distances['k']
-	finger_positions[9] = key_distances['l']
+	var finger_positions [10][2]float64
+	finger_positions[2] = key_positions['a']
+	finger_positions[3] = key_positions['s']
+	finger_positions[4] = key_positions['f']
+	finger_positions[7] = key_positions['j']
+	finger_positions[8] = key_positions['k']
+	finger_positions[9] = key_positions['l']
 
 	var cost_metric float64
 	var last_finger int
 
 	for _, c := range s {
-		c_pos := key_distances[c]
+		c_pos := key_positions[c]
 		finger := key_to_finger[c]
 		last_pos := finger_positions[finger]
 		distance := euclidean_distance(c_pos, last_pos)
@@ -142,12 +144,12 @@ func main() {
 		}
 	}
 
-	key_to_pos, err := load_key_positions("key_distances.csv")
+	key_to_pos, err := load_key_positions("key_positions.csv")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	passphrases, err := generate_random_passwords(english_words_filtered, 100000, 3)
+	passphrases, err := generate_random_passwords(english_words_filtered, 200000, 4)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -163,10 +165,4 @@ func main() {
 		}
 	}
 	fmt.Println(best_phrase, lowest_cost)
-
-	// create N random passphrases
-
-	// score them all via a metric of how easy it is to type
-
-	// output the top 3
 }
